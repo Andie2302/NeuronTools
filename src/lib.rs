@@ -1,0 +1,11 @@
+pub mod perceptron;
+pub mod layer;
+pub mod network;
+pub mod activation;
+pub mod weights_init;
+pub mod tests;
+pub mod loss;
+pub mod clipper;
+pub mod optimizer;
+pub mod regularization;
+mod factories;

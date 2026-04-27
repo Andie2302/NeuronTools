@@ -32,6 +32,24 @@ impl NeuralNetwork {
         for layer in self.layers.iter_mut() {
             layer.flush();
         }
+    }
 
+    pub fn train_batch(&mut self, samples: &[(&[f64], &[f64])], loss: &dyn Loss) {
+        // Alle Samples akkumulieren ohne flush
+        for (input, target) in samples {
+            let output = self.layers
+                .iter_mut()
+                .fold(input.to_vec(), |inp, layer| layer.forward(&inp, true));
+
+            let mut gradient = loss.derivative(&output, target);
+
+            for layer in self.layers.iter_mut().rev() {
+                gradient = layer.backward(&gradient);
+            }
+        }
+        // Erst am Ende einmal flush für alle Layer
+        for layer in self.layers.iter_mut() {
+            layer.flush();
+        }
     }
 }

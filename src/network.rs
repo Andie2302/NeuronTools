@@ -1,4 +1,5 @@
 use crate::layer::Layer;
+use crate::loss::Loss;
 
 pub struct NeuralNetwork {
     pub layers: Vec<Layer>,
@@ -11,22 +12,20 @@ impl NeuralNetwork {
     pub fn predict(&mut self, inputs: &[f64]) -> Vec<f64> {
         self.layers
             .iter_mut()
-            .fold(inputs.to_vec(), |layer_input, layer| layer.forward(&layer_input))
+            .fold(inputs.to_vec(), |layer_input, layer| layer.forward(&layer_input, false))
     }
-    pub fn train(&mut self, input: &[f64], target: &[f64], learning_rate: f64) {
+    pub fn train(&mut self, input: &[f64], target: &[f64], loss: &dyn Loss) {
         // 1. Forward Pass
-        let output = self.predict(input);
+        let output = self.layers
+            .iter_mut()
+            .fold(input.to_vec(), |inp, layer| layer.forward(&inp, true));
 
-        // 2. Initialer Fehler (Loss Gradient)
-        // wir nehmen hier vereinfacht: (Output - Target)
-        let mut current_gradient: Vec<f64> = output.iter()
-            .zip(target)
-            .map(|(o, t)| 2.0 * (o - t))
-            .collect();
+        // 2. Gradient aus Loss-Funktion
+        let mut current_gradient = loss.derivative(&output, target);
 
         // 3. Backward Pass durch alle Layer (von hinten nach vorne)
         for layer in self.layers.iter_mut().rev() {
-            current_gradient = layer.backward(&current_gradient, learning_rate);
+            current_gradient = layer.backward(&current_gradient, 0.0);
         }
     }
 }

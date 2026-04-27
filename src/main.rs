@@ -26,7 +26,7 @@ fn main() {
         &|| Box::new(Sigmoid),
         &|| Box::new(NoClipping),
         &|| Box::new(Adam::new(0.01)),
-        &|| Box::new(Dropout::new(0.2, RealRandomFactory.build())), // ← neu
+        &|| Box::new(Dropout::new(0.02, RealRandomFactory.build())), // ← neu
     );
 
     // Output-Layer immer ohne Dropout

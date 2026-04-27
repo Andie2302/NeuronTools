@@ -27,5 +27,11 @@ impl NeuralNetwork {
         for layer in self.layers.iter_mut().rev() {
             current_gradient = layer.backward(&current_gradient);
         }
+
+        // 4. ← DAS FEHLT: Gewichte tatsächlich updaten
+        for layer in self.layers.iter_mut() {
+            layer.flush();
+        }
+
     }
 }

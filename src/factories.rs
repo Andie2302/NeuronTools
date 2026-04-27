@@ -17,3 +17,7 @@ pub type RegularizerFactory = dyn Fn() -> Box<dyn Regularizer>;
 
 // factories.rs Ergänzung
 pub type RandomizerFactory = dyn Fn() -> Box<dyn RngFactory>;
+
+// factories.rs
+pub type UpdateStrategyFactory = dyn Fn() -> Box<dyn crate::update_strategy::UpdateStrategy>;
+

@@ -45,7 +45,7 @@ impl RngFactory for SeededRngFactory {
 pub struct RealRandomFactory;
 
 impl RngFactory for RealRandomFactory {
-    fn build(&self) -> Box<dyn NnRng> {
+   fn build(&self) -> Box<dyn NnRng> {
         Box::new(RngWrapper(rand::rng()))
     }
 }

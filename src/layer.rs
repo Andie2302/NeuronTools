@@ -2,9 +2,8 @@ use crate::clipper::GradientClipper;
 use crate::factories::{ActivationFactory, ClipperFactory, OptimizerFactory, RegularizerFactory};
 use crate::perceptron::Perceptron;
 pub use crate::perceptron::Activation;
-use crate::regularization::{Regularizer};
+use crate::regularization::Regularizer;
 use crate::weights_init::WeightInitializer;
-
 
 pub struct Layer {
     pub perceptrons: Vec<Perceptron>,
@@ -47,11 +46,7 @@ impl Layer {
         make_optimizer: &OptimizerFactory,
     ) -> Perceptron {
         let weights = initializer.initialize_weights(num_inputs, num_outputs);
-
-        let weight_optimizers = (0..weights.len())
-            .map(|_| make_optimizer())
-            .collect();
-
+        let weight_optimizers = (0..weights.len()).map(|_| make_optimizer()).collect();
         Perceptron {
             weights,
             bias: initializer.initialize_bias(),
@@ -61,10 +56,13 @@ impl Layer {
         }
     }
 
-    pub fn forward(&mut self, inputs: &[f64]) -> Vec<f64> {
+    pub fn forward(&mut self, inputs: &[f64], is_training: bool) -> Vec<f64> {
         self.last_inputs = inputs.to_vec();
         self.last_zs = Vec::with_capacity(self.perceptrons.len());
         self.last_outputs = Vec::with_capacity(self.perceptrons.len());
+
+        // Neuen Schritt vorbereiten (z.B. Dropout-Maske würfeln)
+        self.regularizer.start_step();
 
         for n in &self.perceptrons {
             let z = inputs.iter()
@@ -72,7 +70,12 @@ impl Layer {
                 .map(|(x, w)| x * w)
                 .sum::<f64>()
                 + n.bias;
-            let output = n.activation.calculate(z);
+
+            let activated = n.activation.calculate(z);
+
+            // Regularizer anwenden (z.B. Dropout setzt manche auf 0)
+            let output = self.regularizer.forward(activated, is_training);
+
             self.last_zs.push(z);
             self.last_outputs.push(output);
         }
@@ -83,9 +86,10 @@ impl Layer {
         let mut input_gradient = vec![0.0; self.last_inputs.len()];
 
         for (i, perceptron) in self.perceptrons.iter_mut().enumerate() {
-            let raw_gradient_z = output_gradient[i] * perceptron.activation.derivative(self.last_zs[i]);
+            let raw_gradient = output_gradient[i] * perceptron.activation.derivative(self.last_zs[i]);
 
-            let gradient_z = self.clipper.clip(raw_gradient_z);
+            // Gradient durch Regularizer leiten, dann clipping
+            let gradient_z = self.clipper.clip(self.regularizer.backward(raw_gradient));
 
             for (j, w) in perceptron.weights.iter_mut().enumerate() {
                 input_gradient[j] += gradient_z * (*w);

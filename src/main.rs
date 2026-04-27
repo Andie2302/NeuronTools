@@ -4,9 +4,9 @@ use NeuronTools::layer::Layer;
 use NeuronTools::network::NeuralNetwork;
 use NeuronTools::optimizer::Adam;
 use NeuronTools::regularization::PassThrough;
+use NeuronTools::loss::MSE;
 
 fn main() {
-
     let training_data = vec![
         (vec![0.0, 0.0], vec![0.0]),
         (vec![0.0, 1.0], vec![1.0]),
@@ -38,13 +38,13 @@ fn main() {
     );
     let mut net = NeuralNetwork::new(vec![layer1, layer2]);
 
-    let learning_rate = 0.1;
     let epochs = 10000;
 
     // Training
+    let loss = MSE;
     for epoch in 0..epochs {
         for (input, target) in &training_data {
-            net.train(input, target, learning_rate);
+            net.train(input, target, &loss);
         }
 
         if epoch % 1000 == 0 {

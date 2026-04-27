@@ -3,7 +3,7 @@ use NeuronTools::clipper::NoClipping;
 use NeuronTools::layer::Layer;
 use NeuronTools::loss::MSE;
 use NeuronTools::network::NeuralNetwork;
-use NeuronTools::optimizer::Adam;
+use NeuronTools::optimizer::{Adam, Momentum};
 use NeuronTools::regularization::{Dropout, PassThrough};
 use NeuronTools::randomizer::{RealRandomFactory, RngFactory};
 
@@ -25,7 +25,7 @@ fn main() {
         &initializer,
         &|| Box::new(Sigmoid),
         &|| Box::new(NoClipping),
-        &|| Box::new(Adam::new(0.01)),
+        &|| Box::new(Momentum::new(0.01)),
         &|| Box::new(Dropout::new(0.02, RealRandomFactory.build())), // ← neu
     );
 

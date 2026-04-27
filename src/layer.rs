@@ -1,12 +1,15 @@
 use crate::clipper::GradientClipper;
 use crate::factories::{ActivationFactory, ClipperFactory, OptimizerFactory, RegularizerFactory};
+use crate::parameters::PerceptronParameters;
 use crate::perceptron::Perceptron;
 pub use crate::perceptron::Activation;
 use crate::regularization::Regularizer;
 use crate::weights_init::WeightInitializer;
+use crate::update_strategy::UpdateStrategy;
 
 pub struct Layer {
     pub perceptrons: Vec<Perceptron>,
+    pub update_strategy: Box<dyn UpdateStrategy>,
     pub regularizer: Box<dyn Regularizer>,
     pub clipper: Box<dyn GradientClipper>,
     pub last_inputs: Vec<f64>,
@@ -30,6 +33,7 @@ impl Layer {
             .collect();
         Self {
             perceptrons: neurons,
+            update_strategy: Box::new(crate::update_strategy::ImmediateUpdate),
             regularizer: make_regularizer(),
             clipper: make_clipper(),
             last_inputs: Vec::new(),
@@ -48,8 +52,7 @@ impl Layer {
         let weights = initializer.initialize_weights(num_inputs, num_outputs);
         let weight_optimizers = (0..weights.len()).map(|_| make_optimizer()).collect();
         Perceptron {
-            weights,
-            bias: initializer.initialize_bias(),
+            parameters: PerceptronParameters::new(weights,initializer.initialize_bias()),
             activation: make_activation(),
             weight_optimizers,
             bias_optimizer: make_optimizer(),
@@ -66,11 +69,9 @@ impl Layer {
 
         for n in &self.perceptrons {
             let z = inputs.iter()
-                .zip(n.weights.iter())
-                .map(|(x, w)| x * w)
+                .zip(n.parameters.current.weights.iter())                .map(|(x, w)| x * w)
                 .sum::<f64>()
-                + n.bias;
-
+                + n.parameters.current.bias;
             let activated = n.activation.calculate(z);
 
             // Regularizer anwenden (z.B. Dropout setzt manche auf 0)
@@ -82,7 +83,7 @@ impl Layer {
         self.last_outputs.clone()
     }
 
-    pub fn backward(&mut self, output_gradient: &[f64], _learning_rate: f64) -> Vec<f64> {
+    pub fn backward(&mut self, output_gradient: &[f64]) -> Vec<f64> {
         let mut input_gradient = vec![0.0; self.last_inputs.len()];
 
         for (i, perceptron) in self.perceptrons.iter_mut().enumerate() {
@@ -91,13 +92,30 @@ impl Layer {
             // Gradient durch Regularizer leiten, dann clipping
             let gradient_z = self.clipper.clip(self.regularizer.backward(raw_gradient));
 
-            for (j, w) in perceptron.weights.iter_mut().enumerate() {
-                input_gradient[j] += gradient_z * (*w);
-                let dw = gradient_z * self.last_inputs[j];
-                *w -= perceptron.weight_optimizers[j].compute_step(dw);
+            let dw: Vec<f64> = self.last_inputs.iter()
+                .map(|x| gradient_z * x)
+                .collect();
+
+            self.update_strategy.accumulate(
+                &mut perceptron.parameters,
+                &dw,
+                gradient_z,
+            );
+
+            for (j, w) in perceptron.parameters.current.weights.iter().enumerate() {
+                input_gradient[j] += gradient_z * w;
             }
-            perceptron.bias -= perceptron.bias_optimizer.compute_step(gradient_z);
         }
         input_gradient
+    }
+
+    pub fn flush(&mut self) {
+        for perceptron in self.perceptrons.iter_mut() {
+            self.update_strategy.flush(
+                &mut perceptron.parameters,
+                &mut perceptron.weight_optimizers,
+                &mut perceptron.bias_optimizer,
+            );
+        }
     }
 }

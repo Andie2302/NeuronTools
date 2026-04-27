@@ -25,7 +25,7 @@ impl NeuralNetwork {
 
         // 3. Backward Pass durch alle Layer (von hinten nach vorne)
         for layer in self.layers.iter_mut().rev() {
-            current_gradient = layer.backward(&current_gradient, 0.0);
+            current_gradient = layer.backward(&current_gradient);
         }
     }
 }

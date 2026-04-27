@@ -3,7 +3,6 @@ use NeuronTools::clipper::{ConstantClipper, NoClipping};
 use NeuronTools::layer::Layer;
 use NeuronTools::network::NeuralNetwork;
 use NeuronTools::optimizer::Adam;
-use NeuronTools::weights_init::XavierNormalInitializer;
 use NeuronTools::regularization::PassThrough;
 
 fn main() {
@@ -15,7 +14,7 @@ fn main() {
         (vec![1.0, 1.0], vec![0.0]),
     ];
 
-    let initializer = XavierNormalInitializer;
+    let initializer = NeuronTools::weights_init::StandardInitializer::with_default_rng(NeuronTools::weights_init::ScalingStrategy::XavierNormal);
 
     // Aufbau: 2 Inputs -> 4 Hidden (ReLU) -> 1 Output (Sigmoid)
     // Hidden Layer mit Exponential und Constant Clipper

@@ -10,4 +10,4 @@ pub mod regularization;
 mod factories;
 pub mod randomizer;
 mod parameters;
-mod update_strategy;
+pub mod update_strategy;

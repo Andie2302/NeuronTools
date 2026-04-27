@@ -1,10 +1,11 @@
-use NeuronTools::activation::{Exponential, Sigmoid};
-use NeuronTools::clipper::{ConstantClipper, NoClipping};
+use NeuronTools::activation::Sigmoid;
+use NeuronTools::clipper::NoClipping;
 use NeuronTools::layer::Layer;
+use NeuronTools::loss::MSE;
 use NeuronTools::network::NeuralNetwork;
 use NeuronTools::optimizer::Adam;
-use NeuronTools::regularization::PassThrough;
-use NeuronTools::loss::MSE;
+use NeuronTools::regularization::{Dropout, PassThrough};
+use NeuronTools::randomizer::{RealRandomFactory, RngFactory};
 
 fn main() {
     let training_data = vec![
@@ -16,25 +17,26 @@ fn main() {
 
     let initializer = NeuronTools::weights_init::StandardInitializer::with_default_rng(NeuronTools::weights_init::ScalingStrategy::XavierNormal);
 
-    // Aufbau: 2 Inputs -> 4 Hidden (ReLU) -> 1 Output (Sigmoid)
-    // Hidden Layer mit Exponential und Constant Clipper
+
+
+    // Layer mit 20% Dropout
     let layer1 = Layer::new(
         4, 2, 4,
         &initializer,
-        &|| Box::new(Exponential),         // Activation Factory
-        &|| Box::new(ConstantClipper { limit: 10.0 }), // Clipper Factory
-        &|| Box::new(Adam::new(0.001)),              // Optimizer Factory
-        &|| Box::new(PassThrough),
+        &|| Box::new(Sigmoid),
+        &|| Box::new(NoClipping),
+        &|| Box::new(Adam::new(0.01)),
+        &|| Box::new(Dropout::new(0.2, RealRandomFactory.build())), // ← neu
     );
 
-    // Output Layer mit Sigmoid und ohne Clipping
+    // Output-Layer immer ohne Dropout
     let layer2 = Layer::new(
         1, 4, 1,
         &initializer,
         &|| Box::new(Sigmoid),
         &|| Box::new(NoClipping),
-        &|| Box::new(Adam::new(0.001)),
-        &|| Box::new(PassThrough),
+        &|| Box::new(Adam::new(0.01)),
+        &|| Box::new(PassThrough), // ← Output nie droppen
     );
     let mut net = NeuralNetwork::new(vec![layer1, layer2]);
 

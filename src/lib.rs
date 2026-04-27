@@ -8,4 +8,4 @@ pub mod clipper;
 pub mod optimizer;
 pub mod regularization;
 mod factories;
-mod randomizer;
+pub mod randomizer;

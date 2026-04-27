@@ -6,6 +6,7 @@ use NeuronTools::network::NeuralNetwork;
 use NeuronTools::optimizer::{Adam, Momentum};
 use NeuronTools::regularization::{Dropout, PassThrough};
 use NeuronTools::randomizer::{RealRandomFactory, RngFactory};
+use NeuronTools::update_strategy::{BatchUpdate, ImmediateUpdate};
 
 fn main() {
     let training_data = vec![
@@ -18,7 +19,6 @@ fn main() {
     let initializer = NeuronTools::weights_init::StandardInitializer::with_default_rng(NeuronTools::weights_init::ScalingStrategy::XavierNormal);
 
 
-
     // Layer mit 20% Dropout
     let layer1 = Layer::new(
         4, 2, 4,
@@ -26,7 +26,8 @@ fn main() {
         &|| Box::new(Sigmoid),
         &|| Box::new(NoClipping),
         &|| Box::new(Momentum::new(0.01)),
-        &|| Box::new(Dropout::new(0.02, RealRandomFactory.build())), // ← neu
+        &|| Box::new(Dropout::new(0.02, RealRandomFactory.build())),
+        &|| Box::new(BatchUpdate),  // ← neu
     );
 
     // Output-Layer immer ohne Dropout
@@ -37,6 +38,7 @@ fn main() {
         &|| Box::new(NoClipping),
         &|| Box::new(Adam::new(0.01)),
         &|| Box::new(PassThrough), // ← Output nie droppen
+        &|| Box::new(ImmediateUpdate),  // ← neu
     );
     let mut net = NeuralNetwork::new(vec![layer1, layer2]);
 
@@ -45,9 +47,11 @@ fn main() {
     // Training
     let loss = MSE;
     for epoch in 0..epochs {
-        for (input, target) in &training_data {
-            net.train(input, target, &loss);
-        }
+        let batch: Vec<(&[f64], &[f64])> = training_data.iter()
+            .map(|(i, t)| (i.as_slice(), t.as_slice()))
+            .collect();
+
+        net.train_batch(&batch, &loss);
 
         if epoch % 1000 == 0 {
             let error: f64 = training_data.iter()

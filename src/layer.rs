@@ -1,5 +1,5 @@
 use crate::clipper::GradientClipper;
-use crate::factories::{ActivationFactory, ClipperFactory, OptimizerFactory, RegularizerFactory};
+use crate::factories::{ActivationFactory, ClipperFactory, OptimizerFactory, RegularizerFactory, UpdateStrategyFactory};
 use crate::parameters::PerceptronParameters;
 use crate::perceptron::Perceptron;
 pub use crate::perceptron::Activation;
@@ -27,13 +27,14 @@ impl Layer {
         make_clipper: &ClipperFactory,
         make_optimizer: &OptimizerFactory,
         make_regularizer: &RegularizerFactory,
+        make_update_strategy: &UpdateStrategyFactory,
     ) -> Self {
         let neurons = (0..num_neurons)
             .map(|_| Self::build_neuron(num_inputs, num_outputs, initializer, make_activation, make_optimizer))
             .collect();
         Self {
             perceptrons: neurons,
-            update_strategy: Box::new(crate::update_strategy::ImmediateUpdate),
+            update_strategy: make_update_strategy(),
             regularizer: make_regularizer(),
             clipper: make_clipper(),
             last_inputs: Vec::new(),
@@ -52,7 +53,7 @@ impl Layer {
         let weights = initializer.initialize_weights(num_inputs, num_outputs);
         let weight_optimizers = (0..weights.len()).map(|_| make_optimizer()).collect();
         Perceptron {
-            parameters: PerceptronParameters::new(weights,initializer.initialize_bias()),
+            parameters: PerceptronParameters::new(weights, initializer.initialize_bias()),
             activation: make_activation(),
             weight_optimizers,
             bias_optimizer: make_optimizer(),
@@ -69,7 +70,7 @@ impl Layer {
 
         for n in &self.perceptrons {
             let z = inputs.iter()
-                .zip(n.parameters.current.weights.iter())                .map(|(x, w)| x * w)
+                .zip(n.parameters.current.weights.iter()).map(|(x, w)| x * w)
                 .sum::<f64>()
                 + n.parameters.current.bias;
             let activated = n.activation.calculate(z);

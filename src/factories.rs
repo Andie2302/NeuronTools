@@ -1,6 +1,7 @@
 use crate::activation::Activation;
 use crate::clipper::GradientClipper;
 use crate::regularization::Regularizer;
+use crate::randomizer::RngFactory;
 
 /// A factory closure that produces a fresh [`Activation`] instance on each call.
 pub type ActivationFactory = dyn Fn() -> Box<dyn Activation>;
@@ -13,3 +14,6 @@ pub type OptimizerFactory = dyn Fn() -> Box<dyn crate::optimizer::Optimizer>;
 
 // Eine Factory für Regularizer
 pub type RegularizerFactory = dyn Fn() -> Box<dyn Regularizer>;
+
+// factories.rs Ergänzung
+pub type RandomizerFactory = dyn Fn() -> Box<dyn RngFactory>;

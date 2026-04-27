@@ -9,3 +9,5 @@ pub mod optimizer;
 pub mod regularization;
 mod factories;
 pub mod randomizer;
+mod parameters;
+mod update_strategy;

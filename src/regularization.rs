@@ -10,9 +10,6 @@ pub trait Regularizer {
     fn start_step(&mut self);
 }
 
-
-
-
 /// Der Standard: Macht einfach gar nichts.
 pub struct PassThrough;
 impl Regularizer for PassThrough {
